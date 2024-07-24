@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>OSINT Searches Tracker</title>
+        <meta name="description" content="" />
+        <meta name="author" content="Bret Bernhoft" />
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <style>
+            * {
+                padding: 0px;
+                border: none;
+                margin: 0px;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            main {
+                padding: 0px 10px 10px 0px;
+            }
+            ul {
+                list-style-type: none;
+                display: inline-flex;
+                flex-direction: column;
+            }
+            li {
+                padding: 6px 5px 6px 19px;
+                position: relative;
+            }
+            li:hover {
+                background: lightgray;
+                border-right: 2px solid darkgray;
+            }
+            a {
+                text-decoration: none;
+                color: magenta;
+                text-shadow: 1px 1px darkgray;
+            }
+            a:visited {
+                color: purple;
+            }
+            a:hover {
+                color: black;
+            }
+            input[type='checkbox'] {
+                margin: 0px 3px 0px 10px;
+            }
+            .keyword {
+                font-size: 23px;
+                font-weight: bolder;
+                text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+            }
+            .bucket {
+                padding: 8px 1px 2px 6px;
+                position: relative;
+                margin-right: 5px;
+            }
+            .bucket:hover {
+                background-color: white;
+                box-shadow: inset 0px 0px 2px 1px lightgray;
+            }
+            .platform {
+                font-size: 9px;
+                position: absolute;
+                left: 1px;
+                bottom: -6px;
+                color: rgba(0, 0, 0, 0.75);
+            }
+            .search {
+                font-size: 23px;
+                margin-right: 4px;
+            }
+            .close-keyword {
+                color: darkgray;
+                font-size: 8px;
+                position: absolute;
+                top: 15px;
+                left: 7px;
+                font-weight: bolder;
+            }
+            .close-keyword:hover {
+                color: red;
+                cursor: pointer;
+            }
+            .search-bar {
+                position: fixed;
+                top: 0px;
+                right: 165px;
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+            }
+            .stats-panel {
+                position: fixed;
+                top: 37px;
+                right: 205px;
+            }
+            .stats-panel p {
+                color: lightgray;
+                font-size: 13px;
+            }
+            .stats-panel p:hover {
+                color: black;
+                cursor: pointer;
+            }
+            .stats-panel-header {
+                color: lightgray;
+                font-size: 17px;
+            }
+            .keyword-select {
+                width: 300px;
+                height: 250px;
+                border: 1px solid darkgray;
+            }
+            .keyword-select option {
+                padding: 3px;
+            }
+            .keyword-select option:hover {
+                background-color: lightgray;
+                cursor: pointer;
+            }
+            .parameter-DIV {
+                display: flex;
+            }
+            .timeframe-select,
+            .platform-select {
+                display: block;
+                margin: auto;
+                margin-top: 30px;
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+            }
+            .timeframe-select:hover,
+            .platform-select:hover {
+                cursor: pointer;
+            }
+            .search-button {
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+                margin: auto;
+                display: block;
+                margin-top: 30px;
+            }
+            .search-button:hover {
+                background-color: gold;
+                cursor: pointer;
+            }
+            .custom-search-button {
+                position: fixed;
+                top: 0px;
+                right: 49px;
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+            }
+            .custom-search-button:hover {
+                background-color: gold;
+                cursor: pointer;
+            }
+            .add-button {
+                position: fixed;
+                top: 0px;
+                right: 0px;
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+            }
+            .add-button:hover {
+                cursor: pointer;
+                background: gold;
+            }
+            .bg {
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.5);
+            }
+            .popup {
+                width: 350px;
+                padding: 33px 23px;
+                background: white;
+                border: 1px solid darkgray;
+                position: fixed;
+                top: 200px;
+                box-shadow: 0px 0px 2px 1px darkgray;
+            }
+            .close-popup {
+                position: absolute;
+                top: 2px;
+                right: 5px;
+            }
+            .close-popup:hover {
+                color: red;
+                cursor: pointer;
+            }
+            .new-keyword-input {
+                width: 100%;
+                border: 1px solid lightgray;
+                padding: 8px 12px;
+            }
+            .submit-button {
+                margin: 23px auto 0px auto;
+                display: block;
+                padding: 8px 12px;
+                border: 1px solid darkgray;
+            }
+            .submit-button:hover {
+                cursor: pointer;
+                background: gold;
+            }
+            .select2-results__options {
+                width: 300px;
+            }
+        </style>
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    </head>
+    <body>
+        <main>
+            <ul></ul>
+        </main>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const API_URL_GET = 'http://127.0.0.1:5501/get_queries';
+                const API_URL_UPDATE = 'http://127.0.0.1:5501/update_queries';
+                const fetchHeaders = {
+                    'Content-Type': 'application/json',
+                };
+
+                const fetchData = async () => {
+                    try {
+                        const response = await fetch(API_URL_GET, { method: 'GET', headers: fetchHeaders });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const data = await response.json();
+                        return data.sort((a, b) => String(a).trim().localeCompare(String(b).trim()));
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                    }
+                };
+
+                const createStatsPanel = () => {
+                    const statsPanel = document.createElement('div');
+                    statsPanel.classList.add('stats-panel');
+                    statsPanel.innerHTML = `
+                        <h2 class="stats-panel-header">Quick Stats</h2>
+                        <p class="totalNumberOfKeywords">0 keywords displayed</p>
+                        <p class="totalNumberOfClicks">0 total clicks this session</p>
+                    `;
+                    document.body.appendChild(statsPanel);
+                    return statsPanel;
+                };
+
+                const updateKeywordsCount = (count) => {
+                    document.querySelector('.totalNumberOfKeywords').innerText = `${count} keywords displayed`;
+                };
+
+                const updateClicksCount = (count) => {
+                    document.querySelector('.totalNumberOfClicks').innerText = `${count} total clicks this session`;
+                };
+
+                const createKeywordList = (keywords) => {
+                    const listElem = document.querySelector('ul');
+                    keywords.forEach((keyword) => {
+                        const formattedKeyword = String(keyword).split(' ').join('+');
+                        const innerLineItemElem = document.createElement('li');
+                        innerLineItemElem.innerHTML = `
+                            <p><span class="keyword">${keyword}</span> - 
+                            <span class="bucket">
+                                <a href="https://www.google.com/search?q=${formattedKeyword}" target="_blank" class="platform">Google</a> 
+                                <span class="search"><a href="https://www.google.com/search?q=${formattedKeyword}&tbs=qdr:d" target="_blank">D</a></span>
+                                <span class="search"><a href="https://www.google.com/search?q=${formattedKeyword}&tbs=qdr:w" target="_blank">W</a></span>
+                                <span class="search"><a href="https://www.google.com/search?q=${formattedKeyword}&tbs=qdr:m" target="_blank">M</a></span>
+                            </span> 
+                            <span class="bucket">
+                                <a href="https://www.youtube.com/results?search_query=${formattedKeyword}" target="_blank" class="platform">YouTube</a> 
+                                <span class="search"><a href="https://www.youtube.com/results?search_query=${formattedKeyword}&sp=EgIIAg%253D%253D" target="_blank">D</a></span>
+                                <span class="search"><a href="https://www.youtube.com/results?search_query=${formattedKeyword}&sp=EgQIAxAB" target="_blank">W</a></span>
+                                <span class="search"><a href="https://www.youtube.com/results?search_query=${formattedKeyword}&sp=EgQIBBAB" target="_blank">M</a></span>
+                            </span> 
+                            <span class="bucket">
+                                <a href="https://old.reddit.com/search/?q=${formattedKeyword}" target="_blank" class="platform">Reddit</a> 
+                                <span class="search"><a href="https://old.reddit.com/search/?q=${formattedKeyword}&t=day" target="_blank">D</a></span>
+                                <span class="search"><a href="https://old.reddit.com/search/?q=${formattedKeyword}&t=week" target="_blank">W</a></span>
+                                <span class="search"><a href="https://old.reddit.com/search/?q=${formattedKeyword}&t=month" target="_blank">M</a></span>
+                            </span> 
+                            <span class="bucket">
+                                <a href="https://twitter.com/search?q=${formattedKeyword}" target="_blank" class="platform">Twitter</a> 
+                                <span class="search"><a href="https://twitter.com/search?q=${formattedKeyword}" target="_blank">T</a></span>
+                                <span class="search"><a href="https://twitter.com/search?q=${formattedKeyword}&f=live" target="_blank">L</a></span>
+                            </span></p>
+                            <p class="close-keyword">X</p>
+                        `;
+                        listElem.appendChild(innerLineItemElem);
+                        innerLineItemElem.querySelector('.close-keyword').addEventListener('click', () => removeKeyword(innerLineItemElem));
+                    });
+                };
+
+                const removeKeyword = (elem) => {
+                    const listElem = document.querySelector('ul');
+                    listElem.removeChild(elem);
+                    updateKeywordsData();
+                    updateKeywordsCount(document.querySelectorAll('.keyword').length);
+                };
+
+                const updateKeywordsData = async () => {
+                    const remainingKeywords = Array.from(document.querySelectorAll('.keyword')).map((elem) => elem.innerText);
+                    try {
+                        const response = await fetch(API_URL_UPDATE, {
+                            method: 'POST',
+                            headers: fetchHeaders,
+                            body: JSON.stringify({ query: remainingKeywords }),
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        await response.json();
+                    } catch (error) {
+                        console.error('Error updating keywords:', error);
+                    }
+                };
+
+                const addKeywordSearchFunctionality = () => {
+                    let totalClicks = 0;
+                    document.querySelectorAll('a').forEach((a) => {
+                        a.addEventListener('click', () => {
+                            totalClicks += 1;
+                            updateClicksCount(totalClicks);
+                        });
+                    });
+
+                    const searchBar = document.createElement('input');
+                    searchBar.placeholder = 'Search keywords here';
+                    searchBar.classList.add('search-bar');
+                    document.body.appendChild(searchBar);
+
+                    searchBar.addEventListener('input', () => {
+                        const searchValue = searchBar.value.toLowerCase();
+                        const keywordsToSearch = document.querySelectorAll('.keyword');
+                        let totalDisplayedKeywords = 0;
+                        keywordsToSearch.forEach((keywordElem) => {
+                            const keywordText = keywordElem.innerText.toLowerCase();
+                            const parentElem = keywordElem.parentElement.parentElement;
+                            if (keywordText.includes(searchValue)) {
+                                parentElem.style.display = 'inline';
+                                totalDisplayedKeywords += 1;
+                            } else {
+                                parentElem.style.display = 'none';
+                            }
+                        });
+                        updateKeywordsCount(totalDisplayedKeywords);
+                    });
+                };
+
+                const createButton = (text, className, onClick) => {
+                    const button = document.createElement('button');
+                    button.innerText = text;
+                    button.classList.add(className);
+                    button.addEventListener('click', onClick);
+                    document.body.appendChild(button);
+                };
+
+                const addCustomSearchButton = (keywords) => {
+                    createButton('Custom Search', 'custom-search-button', () => {
+                        const bg = document.createElement('div');
+                        bg.classList.add('bg');
+                        document.body.appendChild(bg);
+
+                        const popup = document.createElement('div');
+                        popup.classList.add('popup');
+                        document.body.appendChild(popup);
+
+                        const closePopup = document.createElement('p');
+                        closePopup.classList.add('close-popup');
+                        closePopup.innerText = 'X';
+                        popup.appendChild(closePopup);
+                        closePopup.onclick = () => {
+                            document.body.removeChild(bg);
+                            document.body.removeChild(popup);
+                        };
+                        bg.onclick = () => {
+                            document.body.removeChild(bg);
+                            document.body.removeChild(popup);
+                        };
+
+                        const centerPopup = () => {
+                            const popupWidth = popup.offsetWidth;
+                            const popupHeight = popup.offsetHeight;
+                            popup.style.left = `calc(50% - ${popupWidth / 2}px)`;
+                            popup.style.top = `calc(50% - ${popupHeight / 2}px)`;
+                        };
+
+                        const keywordSelect = document.createElement('select');
+                        keywordSelect.classList.add('keyword-select');
+                        keywordSelect.multiple = true;
+                        popup.appendChild(keywordSelect);
+                        keywords.forEach((keyword) => {
+                            const option = document.createElement('option');
+                            option.value = keyword;
+                            option.innerText = keyword;
+                            keywordSelect.appendChild(option);
+                        });
+
+                        $('.keyword-select').select2();
+
+                        const parameterDIV = document.createElement('div');
+                        parameterDIV.classList.add('parameter-DIV');
+                        popup.appendChild(parameterDIV);
+
+                        const timeframeSelect = document.createElement('select');
+                        timeframeSelect.classList.add('timeframe-select');
+                        parameterDIV.appendChild(timeframeSelect);
+                        const timeframes = [
+                            { text: 'Day', value: 'd' },
+                            { text: 'Week', value: 'w' },
+                            { text: 'Month', value: 'm' },
+                        ];
+                        timeframes.forEach((timeframe) => {
+                            const option = document.createElement('option');
+                            option.value = timeframe.value;
+                            option.innerText = timeframe.text;
+                            timeframeSelect.appendChild(option);
+                        });
+
+                        const platformSelect = document.createElement('select');
+                        platformSelect.classList.add('platform-select');
+                        parameterDIV.appendChild(platformSelect);
+                        const platforms = [
+                            { text: 'Google', value: 'google' },
+                            { text: 'YouTube', value: 'youtube' },
+                            { text: 'Reddit', value: 'reddit' },
+                            { text: 'Twitter', value: 'twitter' },
+                        ];
+                        platforms.forEach((platform) => {
+                            const option = document.createElement('option');
+                            option.value = platform.value;
+                            option.innerText = platform.text;
+                            platformSelect.appendChild(option);
+                        });
+
+                        platformSelect.onchange = () => {
+                            timeframeSelect.disabled = platformSelect.value === 'twitter';
+                        };
+
+                        const searchTypeDiv = document.createElement('div');
+                        searchTypeDiv.style.display = 'flex';
+                        searchTypeDiv.style.justifyContent = 'center';
+                        searchTypeDiv.style.width = '100%';
+                        searchTypeDiv.style.margin = '20px 0';
+                        popup.appendChild(searchTypeDiv);
+
+                        const orCheckbox = document.createElement('input');
+                        orCheckbox.type = 'checkbox';
+                        orCheckbox.id = 'orCheckbox';
+                        orCheckbox.name = 'searchType';
+                        orCheckbox.value = 'OR';
+                        const orLabel = document.createElement('label');
+                        orLabel.htmlFor = 'orCheckbox';
+                        orLabel.innerText = ' OR ';
+                        searchTypeDiv.appendChild(orCheckbox);
+                        searchTypeDiv.appendChild(orLabel);
+
+                        const andCheckbox = document.createElement('input');
+                        andCheckbox.type = 'checkbox';
+                        andCheckbox.id = 'andCheckbox';
+                        andCheckbox.name = 'searchType';
+                        andCheckbox.value = 'AND';
+                        const andLabel = document.createElement('label');
+                        andLabel.htmlFor = 'andCheckbox';
+                        andLabel.innerText = ' AND ';
+                        searchTypeDiv.appendChild(andCheckbox);
+                        searchTypeDiv.appendChild(andLabel);
+
+                        orCheckbox.onclick = () => {
+                            if (orCheckbox.checked) {
+                                andCheckbox.checked = false;
+                            }
+                        };
+
+                        andCheckbox.onclick = () => {
+                            if (andCheckbox.checked) {
+                                orCheckbox.checked = false;
+                            }
+                        };
+
+                        const searchButton = document.createElement('button');
+                        searchButton.innerText = 'Search';
+                        searchButton.classList.add('search-button');
+                        popup.appendChild(searchButton);
+
+                        searchButton.onclick = () => {
+                            const selectedKeywords = Array.from(keywordSelect.selectedOptions).map((option) => option.value);
+                            if (!selectedKeywords.length) return;
+
+                            const timeframe = timeframeSelect.value;
+                            const platform = platformSelect.value;
+                            const isOrSearch = orCheckbox.checked;
+                            const isAndSearch = andCheckbox.checked;
+
+                            let formattedKeywords = '';
+
+                            if (isOrSearch) {
+                                formattedKeywords = selectedKeywords.map((kw) => `"${kw.split(' ').join('+')}"`).join('+OR+');
+                            } else if (isAndSearch) {
+                                formattedKeywords = selectedKeywords.map((kw) => kw.split(' ').join('+')).join('+');
+                            } else {
+                                formattedKeywords = selectedKeywords.map((kw) => kw.split(' ').join('+')).join('+');
+                            }
+
+                            openSearchWindow(platform, formattedKeywords, timeframe);
+                        };
+
+                        setTimeout(centerPopup, 0);
+                    });
+                };
+
+                const openSearchWindow = (platform, keywords, timeframe) => {
+                    let url = '';
+                    switch (platform) {
+                        case 'google':
+                            url = `https://www.google.com/search?q=${keywords}&tbs=qdr:${timeframe}`;
+                            break;
+                        case 'youtube':
+                            const youtubeTimeframe = timeframe === 'm' ? 'EgQIBBAB' : timeframe === 'd' ? 'EgIIAg%253D%253D' : 'EgQIAxAB';
+                            url = `https://www.youtube.com/results?search_query=${keywords}&sp=${youtubeTimeframe}`;
+                            break;
+                        case 'reddit':
+                            url = `https://old.reddit.com/search/?q=${keywords}&t=${timeframe}`;
+                            break;
+                        case 'twitter':
+                            url = `https://twitter.com/search?q=${keywords}`;
+                            break;
+                    }
+                    window.open(url, '_blank');
+                };
+
+                const addNewKeywordButton = (keywords) => {
+                    createButton('Add', 'add-button', () => {
+                        const bg = document.createElement('div');
+                        bg.classList.add('bg');
+                        document.body.appendChild(bg);
+                        const popup = document.createElement('div');
+                        popup.classList.add('popup');
+                        document.body.appendChild(popup);
+                        popup.style.left = `${window.innerWidth / 2 - 150}px`;
+                        const closePopup = document.createElement('p');
+                        closePopup.classList.add('close-popup');
+                        closePopup.innerText = 'X';
+                        popup.appendChild(closePopup);
+                        closePopup.onclick = () => {
+                            document.body.removeChild(bg);
+                            document.body.removeChild(popup);
+                        };
+                        bg.onclick = () => {
+                            document.body.removeChild(bg);
+                            document.body.removeChild(popup);
+                        };
+
+                        const newKeywordInput = document.createElement('input');
+                        newKeywordInput.placeholder = 'Enter keywords here';
+                        newKeywordInput.classList.add('new-keyword-input');
+                        popup.appendChild(newKeywordInput);
+                        const submitButton = document.createElement('button');
+                        submitButton.innerText = 'Submit';
+                        submitButton.classList.add('submit-button');
+                        popup.appendChild(submitButton);
+
+                        submitButton.onclick = async () => {
+                            if (!newKeywordInput.value.trim()) return;
+                            const newKeywords = newKeywordInput.value
+                                .split(',')
+                                .map((kw) => kw.trim())
+                                .filter(Boolean);
+                            const updatedKeywords = Array.from(new Set([...keywords, ...newKeywords]));
+
+                            try {
+                                const response = await fetch(API_URL_UPDATE, {
+                                    method: 'POST',
+                                    headers: fetchHeaders,
+                                    body: JSON.stringify({ query: updatedKeywords }),
+                                });
+                                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                                await response.json();
+                                location.reload();
+                            } catch (error) {
+                                console.error('Error updating keywords:', error);
+                            }
+                        };
+                    });
+                };
+
+                const initializeUI = async () => {
+                    const keywords = await fetchData();
+                    createStatsPanel();
+                    createKeywordList(keywords);
+                    updateKeywordsCount(keywords.length);
+                    addKeywordSearchFunctionality();
+                    addCustomSearchButton(keywords);
+                    addNewKeywordButton(keywords);
+                };
+
+                initializeUI();
+            });
+        </script>
+    </body>
+</html>
