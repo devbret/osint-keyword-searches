@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>OSINT Searches Tracker</title>
-        <meta name="description" content="" />
+        <meta name="description" content="Build and organize your OSINT searches on different platforms." />
         <meta name="author" content="Bret Bernhoft" />
         <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
         <style>
@@ -49,6 +49,13 @@
                 font-size: 23px;
                 font-weight: bolder;
                 text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+            }
+            .click-count {
+                font-size: 8px;
+                color: darkgray;
+                position: relative;
+                left: -2px;
+                top: -15px;
             }
             .bucket {
                 padding: 8px 1px 2px 6px;
@@ -225,6 +232,7 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const API_URL_GET = 'http://127.0.0.1:5501/get_queries';
                 const API_URL_UPDATE = 'http://127.0.0.1:5501/update_queries';
+                const API_URL_INCREMENT_CLICK = 'http://127.0.0.1:5501/increment_click';
                 const fetchHeaders = {
                     'Content-Type': 'application/json',
                 };
@@ -234,7 +242,7 @@
                         const response = await fetch(API_URL_GET, { method: 'GET', headers: fetchHeaders });
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                         const data = await response.json();
-                        return data.sort((a, b) => String(a).trim().localeCompare(String(b).trim()));
+                        return data.sort((a, b) => String(a[0]).trim().localeCompare(String(b[0]).trim()));
                     } catch (error) {
                         console.error('Error fetching data:', error);
                     }
@@ -263,10 +271,12 @@
                 const createKeywordList = (keywords) => {
                     const listElem = document.querySelector('ul');
                     keywords.forEach((keyword) => {
-                        const formattedKeyword = String(keyword).split(' ').join('+');
+                        const [keywordText, clickCount] = keyword;
+                        const formattedKeyword = keywordText.split(' ').join('+');
                         const innerLineItemElem = document.createElement('li');
                         innerLineItemElem.innerHTML = `
-                            <p><span class="keyword">${keyword}</span> - 
+                            <p><span class="keyword">${keywordText}</span>
+                            <span class="click-count">${clickCount} clicks</span>
                             <span class="bucket">
                                 <a href="https://www.google.com/search?q=${formattedKeyword}" target="_blank" class="platform">Google</a> 
                                 <span class="search"><a href="https://www.google.com/search?q=${formattedKeyword}&tbs=qdr:d" target="_blank">D</a></span>
@@ -294,6 +304,12 @@
                         `;
                         listElem.appendChild(innerLineItemElem);
                         innerLineItemElem.querySelector('.close-keyword').addEventListener('click', () => removeKeyword(innerLineItemElem));
+
+                        innerLineItemElem.querySelectorAll('a').forEach((a) => {
+                            a.addEventListener('click', async (e) => {
+                                await incrementClickCount(keywordText);
+                            });
+                        });
                     });
                 };
 
@@ -316,6 +332,28 @@
                         await response.json();
                     } catch (error) {
                         console.error('Error updating keywords:', error);
+                    }
+                };
+
+                const incrementClickCount = async (keyword) => {
+                    try {
+                        const response = await fetch(API_URL_INCREMENT_CLICK, {
+                            method: 'POST',
+                            headers: fetchHeaders,
+                            body: JSON.stringify({ query: keyword }),
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        await response.json();
+
+                        const keywordElem = Array.from(document.querySelectorAll('.keyword')).find((elem) => elem.innerText === keyword);
+                        if (keywordElem) {
+                            const clickCountElem = keywordElem.nextElementSibling;
+                            if (clickCountElem) {
+                                clickCountElem.innerText = parseInt(clickCountElem.innerText) + 1 + ' clicks';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error incrementing click count:', error);
                     }
                 };
 
@@ -395,8 +433,8 @@
                         popup.appendChild(keywordSelect);
                         keywords.forEach((keyword) => {
                             const option = document.createElement('option');
-                            option.value = keyword;
-                            option.innerText = keyword;
+                            option.value = keyword[0];
+                            option.innerText = keyword[0];
                             keywordSelect.appendChild(option);
                         });
 
@@ -570,7 +608,7 @@
                                 .split(',')
                                 .map((kw) => kw.trim())
                                 .filter(Boolean);
-                            const updatedKeywords = Array.from(new Set([...keywords, ...newKeywords]));
+                            const updatedKeywords = Array.from(new Set([...keywords.map((k) => k[0]), ...newKeywords]));
 
                             try {
                                 const response = await fetch(API_URL_UPDATE, {
