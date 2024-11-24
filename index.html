@@ -233,6 +233,7 @@
                 const API_URL_GET = 'http://127.0.0.1:5501/get_queries';
                 const API_URL_UPDATE = 'http://127.0.0.1:5501/update_queries';
                 const API_URL_INCREMENT_CLICK = 'http://127.0.0.1:5501/increment_click';
+                const API_URL_DELETE_QUERY = 'http://127.0.0.1:5501/delete_query'
                 const fetchHeaders = {
                     'Content-Type': 'application/json',
                 };
@@ -310,14 +311,38 @@
                                 await incrementClickCount(keywordText);
                             });
                         });
-                    });
-                };
 
-                const removeKeyword = (elem) => {
-                    const listElem = document.querySelector('ul');
-                    listElem.removeChild(elem);
-                    updateKeywordsData();
-                    updateKeywordsCount(document.querySelectorAll('.keyword').length);
+                        const removeKeyword = (elem) => {              
+                            fetch(API_URL_DELETE_QUERY, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ query: keywordText })
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().then(err => {
+                                        throw new Error(err.error || 'Failed to delete keyword');
+                                    });
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log(data.message);
+                                
+                                const listElem = document.querySelector('ul');
+                                listElem.removeChild(elem);
+                                
+                                updateKeywordsData();
+                                updateKeywordsCount(document.querySelectorAll('.keyword').length);
+                            })
+                            .catch(error => {
+                                console.error('Error deleting keyword:', error.message);
+                                alert(`Error: ${error.message}`);
+                            });
+                        };
+                    });
                 };
 
                 const updateKeywordsData = async () => {

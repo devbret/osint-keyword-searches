@@ -46,6 +46,29 @@ def update_queries():
 
     return jsonify({'message': 'Queries added successfully'}), 200
 
+@app.route('/delete_query', methods=['DELETE'])
+def delete_query():
+    keyword_to_delete = request.json.get('query')
+    if not keyword_to_delete:
+        return jsonify({'error': 'No query provided'}), 400
+
+    try:
+        with open('search_queries.json', 'r') as f:
+            queries = json.load(f)
+
+        queries = [q for q in queries if q[0] != keyword_to_delete]
+
+        with open('search_queries.json', 'w') as f:
+            json.dump(queries, f)
+
+        return jsonify({'message': f'Query "{keyword_to_delete}" deleted successfully'}), 200
+
+    except FileNotFoundError:
+        return jsonify({'error': 'JSON file not found'}), 500
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Error decoding JSON file'}), 500
+
+
 @app.route('/increment_click', methods=['POST'])
 def increment_click():
     query_to_increment = request.json.get('query')
