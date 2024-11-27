@@ -490,7 +490,7 @@
                             { text: 'Google', value: 'google' },
                             { text: 'YouTube', value: 'youtube' },
                             { text: 'Reddit', value: 'reddit' },
-                            { text: 'Twitter', value: 'twitter' },
+                            { text: 'Bluesky', value: 'bluesky' },
                         ];
                         platforms.forEach((platform) => {
                             const option = document.createElement('option');
@@ -588,8 +588,8 @@
                         case 'reddit':
                             url = `https://old.reddit.com/search/?q=${keywords}&t=${timeframe}`;
                             break;
-                        case 'twitter':
-                            url = `https://twitter.com/search?q=${keywords}`;
+                        case 'bluesky':
+                            url = `https://bsky.app/search?q=${keywords}`;
                             break;
                     }
                     window.open(url, '_blank');
