@@ -76,7 +76,7 @@ def update_queries():
     with open(json_file_path, 'w') as f:
         json.dump(queries, f)
 
-    log_action('update_queries', f'Added queries: {added_queries}')
+    log_action('update_queries', f'"{added_queries}"')
     return jsonify({'message': 'Queries added successfully'}), 200
 
 @app.route('/delete_query', methods=['DELETE'])
@@ -107,10 +107,17 @@ def delete_query():
 
 @app.route('/increment_click', methods=['POST'])
 def increment_click():
-    query_to_increment = request.json.get('query')
+    data = request.json
+    query_to_increment = data.get('query')
+    platform = data.get('platform')
+
     if not query_to_increment:
         log_action('increment_click', 'No query provided')
         return jsonify({'error': 'No query provided'}), 400
+
+    if not platform:
+        log_action('increment_click', f'No platform provided for query: {query_to_increment}')
+        return jsonify({'error': 'No platform provided'}), 400
 
     with open(json_file_path, 'r') as f:
         queries = json.load(f)
@@ -120,14 +127,15 @@ def increment_click():
             q[1] += 1
             break
     else:
-        log_action('increment_click', f'Query not found: {query_to_increment}')
+        log_action('increment_click', f'Query not found: {query_to_increment} on platform: {platform}')
         return jsonify({'error': 'Query not found'}), 404
 
     with open(json_file_path, 'w') as f:
         json.dump(queries, f)
 
-    log_action('increment_click', f'Incremented click count for: {query_to_increment}')
+    log_action('increment_click', f'Incremented click count for: {query_to_increment} on platform: {platform}')
     return jsonify({'message': 'Click count incremented successfully'}), 200
+
 
 if __name__ == '__main__':
     app.run(port=5501)

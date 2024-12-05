@@ -327,8 +327,16 @@
               );
 
             innerLineItemElem.querySelectorAll("a").forEach((a) => {
-              a.addEventListener("click", async (e) => {
-                await incrementClickCount(keywordText);
+              a.addEventListener("click", async () => {
+                const platformLink = a
+                  .closest(".bucket")
+                  ?.querySelector(".platform");
+
+                const platform = platformLink
+                  ? platformLink.innerText.trim()
+                  : "Unknown";
+
+                await incrementClickCount(keywordText, platform);
               });
             });
 
@@ -385,12 +393,12 @@
           }
         };
 
-        const incrementClickCount = async (keyword) => {
+        const incrementClickCount = async (keyword, platform) => {
           try {
             const response = await fetch(API_URL_INCREMENT_CLICK, {
               method: "POST",
               headers: fetchHeaders,
-              body: JSON.stringify({ query: keyword }),
+              body: JSON.stringify({ query: keyword, platform: platform }),
             });
             if (!response.ok)
               throw new Error(`HTTP error! status: ${response.status}`);
