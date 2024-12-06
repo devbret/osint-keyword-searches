@@ -172,14 +172,16 @@
         background-color: gold;
         cursor: pointer;
       }
-      .add-button {
+      .add-button,
+      .stats-button {
         position: fixed;
         top: 0px;
         right: 0px;
         padding: 8px 12px;
         border: 1px solid darkgray;
       }
-      .add-button:hover {
+      .add-button:hover,
+      .stats-button:hover {
         cursor: pointer;
         background: gold;
       }
@@ -191,8 +193,12 @@
         height: 100vh;
         background-color: rgba(0, 0, 0, 0.5);
       }
+      .stats-button {
+        right: 362px;
+      }
       .popup {
-        width: 350px;
+        width: auto;
+        max-width: 646px;
         padding: 33px 23px;
         background: white;
         border: 1px solid darkgray;
@@ -230,6 +236,7 @@
     </style>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
     <main>
@@ -702,6 +709,137 @@
                 console.error("Error updating keywords:", error);
               }
             };
+          });
+
+          createButton("Stats", "stats-button", () => {
+            const bg = document.createElement("div");
+            bg.classList.add("bg");
+            document.body.appendChild(bg);
+
+            const popup = document.createElement("div");
+            popup.classList.add("popup");
+            document.body.appendChild(popup);
+            popup.style.left = `${window.innerWidth / 2 - 323}px`;
+
+            const closePopup = document.createElement("p");
+            closePopup.classList.add("close-popup");
+            closePopup.innerText = "X";
+            popup.appendChild(closePopup);
+
+            closePopup.onclick = () => {
+              document.body.removeChild(bg);
+              document.body.removeChild(popup);
+            };
+
+            bg.onclick = () => {
+              document.body.removeChild(bg);
+              document.body.removeChild(popup);
+            };
+
+            const popupContainer = document.createElement("div");
+            popupContainer.id = "popupContainer";
+            popup.appendChild(popupContainer);
+
+            const statsContainer = document.createElement("div");
+            statsContainer.id = "statsContainer";
+            popupContainer.appendChild(statsContainer);
+
+            const d3Stats = document.createElement("div");
+            d3Stats.id = "d3-stats";
+            popupContainer.appendChild(d3Stats);
+
+            fetch("http://localhost:5501/get_logs")
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+              })
+              .then((data) => {
+                console.log("Log Data:", data.log_data);
+
+                const parsedData = d3.csvParse(data.log_data);
+
+                const actionsByDate = d3.rollups(
+                  parsedData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                actionsByDate.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+
+                const dates = actionsByDate.map((d) => new Date(d[0]));
+                const counts = actionsByDate.map((d) => d[1]);
+
+                const width = 600;
+                const height = 300;
+                const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+
+                const xScale = d3
+                  .scaleTime()
+                  .domain(d3.extent(dates))
+                  .range([margin.left, width - margin.right]);
+
+                const yScale = d3
+                  .scaleLinear()
+                  .domain([0, d3.max(counts)])
+                  .nice()
+                  .range([height - margin.bottom, margin.top]);
+
+                const svg = d3
+                  .select("#d3-stats")
+                  .append("svg")
+                  .attr("width", width)
+                  .attr("height", height);
+
+                const xAxis = d3
+                  .axisBottom(xScale)
+                  .tickFormat(d3.timeFormat("%Y-%m-%d"));
+                const yAxis = d3.axisLeft(yScale);
+
+                svg
+                  .append("g")
+                  .attr("transform", `translate(0,${height - margin.bottom})`)
+                  .call(xAxis)
+                  .selectAll("text")
+                  .attr("transform", "rotate(-45)")
+                  .style("text-anchor", "end");
+
+                svg
+                  .append("g")
+                  .attr("transform", `translate(${margin.left},0)`)
+                  .call(yAxis);
+
+                const line = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(actionsByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "steelblue")
+                  .attr("stroke-width", 2)
+                  .attr("d", line);
+
+                svg
+                  .selectAll(".dot")
+                  .data(actionsByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "steelblue");
+
+                statsContainer.innerHTML = "<h2>Number Of Actions Daily</h2>";
+              })
+              .catch((error) => {
+                console.error("Error fetching log data:", error);
+                statsContainer.innerHTML =
+                  "<p>Failed to fetch stats. Check console for errors.</p>";
+              });
           });
         };
 

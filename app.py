@@ -136,6 +136,21 @@ def increment_click():
     log_action('increment_click', f'Incremented click count for: {query_to_increment} on platform: {platform}')
     return jsonify({'message': 'Click count incremented successfully'}), 200
 
+@app.route('/get_logs', methods=['GET'])
+def get_logs():
+    try:
+        if not os.path.exists(log_file_path):
+            log_action('get_logs', 'Log file not found')
+            return jsonify({'error': 'Log file not found'}), 404
+
+        with open(log_file_path, 'r') as f:
+            csv_data = f.read()
+
+        log_action('get_logs', 'Log file retrieved successfully')
+        return jsonify({'log_data': csv_data}), 200
+    except Exception as e:
+        log_action('get_logs', f'Error retrieving log file: {str(e)}')
+        return jsonify({'error': 'Error retrieving log file'}), 500
 
 if __name__ == '__main__':
     app.run(port=5501)
