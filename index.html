@@ -199,11 +199,13 @@
       .popup {
         width: auto;
         max-width: 646px;
+        max-height: 800px;
+        overflow-y: auto;
         padding: 33px 23px;
         background: white;
         border: 1px solid darkgray;
         position: fixed;
-        top: 200px;
+        top: 43px;
         box-shadow: 0px 0px 2px 1px darkgray;
       }
       .close-popup {
@@ -744,10 +746,6 @@
             statsContainer.id = "statsContainer";
             popupContainer.appendChild(statsContainer);
 
-            const d3Stats = document.createElement("div");
-            d3Stats.id = "d3-stats";
-            popupContainer.appendChild(d3Stats);
-
             fetch("http://localhost:5501/get_logs")
               .then((response) => {
                 if (!response.ok) {
@@ -756,9 +754,10 @@
                 return response.json();
               })
               .then((data) => {
-                console.log("Log Data:", data.log_data);
-
                 const parsedData = d3.csvParse(data.log_data);
+
+                // Line Graph - Actions by Date
+                statsContainer.innerHTML += "<h2>Number Of Actions Daily</h2>";
 
                 const actionsByDate = d3.rollups(
                   parsedData,
@@ -787,7 +786,7 @@
                   .range([height - margin.bottom, margin.top]);
 
                 const svg = d3
-                  .select("#d3-stats")
+                  .select("#statsContainer")
                   .append("svg")
                   .attr("width", width)
                   .attr("height", height);
@@ -833,7 +832,100 @@
                   .attr("r", 4)
                   .attr("fill", "steelblue");
 
-                statsContainer.innerHTML = "<h2>Number Of Actions Daily</h2>";
+                const statsContainerPlatformActivity =
+                  document.createElement("div");
+                statsContainerPlatformActivity.id =
+                  "statsContainerPlatformActivity";
+                popupContainer.appendChild(statsContainerPlatformActivity);
+
+                // Bar Graph - Platform Activity
+                statsContainerPlatformActivity.innerHTML +=
+                  "<h2>Activity By Platform</h2>";
+
+                const platformCounts = d3.rollups(
+                  parsedData
+                    .filter(
+                      (d) =>
+                        d["specific action taken"] &&
+                        d["specific action taken"].includes("on platform:")
+                    )
+                    .map((d) => {
+                      const match =
+                        d["specific action taken"].match(/on platform: (\w+)/);
+                      return match ? match[1] : null;
+                    })
+                    .filter(Boolean),
+                  (v) => v.length,
+                  (d) => d
+                );
+
+                platformCounts.sort((a, b) => b[1] - a[1]);
+
+                const barWidth = 600;
+                const barHeight = 300;
+                const barMargin = { top: 20, right: 30, bottom: 50, left: 50 };
+
+                const barXScale = d3
+                  .scaleBand()
+                  .domain(platformCounts.map((d) => d[0]))
+                  .range([barMargin.left, barWidth - barMargin.right])
+                  .padding(0.1);
+
+                const barYScale = d3
+                  .scaleLinear()
+                  .domain([0, d3.max(platformCounts, (d) => d[1])])
+                  .nice()
+                  .range([barHeight - barMargin.bottom, barMargin.top]);
+
+                const barSvg = d3
+                  .select("#statsContainerPlatformActivity")
+                  .append("svg")
+                  .attr("width", barWidth)
+                  .attr("height", barHeight);
+
+                const barXAxis = d3.axisBottom(barXScale);
+                const barYAxis = d3.axisLeft(barYScale);
+
+                barSvg
+                  .append("g")
+                  .attr(
+                    "transform",
+                    `translate(0,${barHeight - barMargin.bottom})`
+                  )
+                  .call(barXAxis)
+                  .selectAll("text")
+                  .attr("transform", "rotate(-45)")
+                  .style("text-anchor", "end");
+
+                barSvg
+                  .append("g")
+                  .attr("transform", `translate(${barMargin.left},0)`)
+                  .call(barYAxis);
+
+                barSvg
+                  .selectAll(".bar")
+                  .data(platformCounts)
+                  .enter()
+                  .append("rect")
+                  .attr("class", "bar")
+                  .attr("x", (d) => barXScale(d[0]))
+                  .attr("y", (d) => barYScale(d[1]))
+                  .attr("width", barXScale.bandwidth())
+                  .attr(
+                    "height",
+                    (d) => barHeight - barMargin.bottom - barYScale(d[1])
+                  )
+                  .attr("fill", "steelblue");
+
+                barSvg
+                  .selectAll(".label")
+                  .data(platformCounts)
+                  .enter()
+                  .append("text")
+                  .attr("x", (d) => barXScale(d[0]) + barXScale.bandwidth() / 2)
+                  .attr("y", (d) => barYScale(d[1]) - 5)
+                  .attr("text-anchor", "middle")
+                  .text((d) => d[1]);
               })
               .catch((error) => {
                 console.error("Error fetching log data:", error);
