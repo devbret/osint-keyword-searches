@@ -742,10 +742,6 @@
             popupContainer.id = "popupContainer";
             popup.appendChild(popupContainer);
 
-            const statsContainer = document.createElement("div");
-            statsContainer.id = "statsContainer";
-            popupContainer.appendChild(statsContainer);
-
             fetch("http://localhost:5501/get_logs")
               .then((response) => {
                 if (!response.ok) {
@@ -757,6 +753,10 @@
                 const parsedData = d3.csvParse(data.log_data);
 
                 // Line Graph - Actions by Date
+                const statsContainer = document.createElement("div");
+                statsContainer.id = "statsContainer";
+                popupContainer.appendChild(statsContainer);
+
                 statsContainer.innerHTML += "<h2>Number Of Actions Daily</h2>";
 
                 const actionsByDate = d3.rollups(
@@ -832,13 +832,13 @@
                   .attr("r", 4)
                   .attr("fill", "steelblue");
 
+                // Bar Graph - Platform Activity
                 const statsContainerPlatformActivity =
                   document.createElement("div");
                 statsContainerPlatformActivity.id =
                   "statsContainerPlatformActivity";
                 popupContainer.appendChild(statsContainerPlatformActivity);
 
-                // Bar Graph - Platform Activity
                 statsContainerPlatformActivity.innerHTML +=
                   "<h2>Activity By Platform</h2>";
 
@@ -924,6 +924,116 @@
                   .append("text")
                   .attr("x", (d) => barXScale(d[0]) + barXScale.bandwidth() / 2)
                   .attr("y", (d) => barYScale(d[1]) - 5)
+                  .attr("text-anchor", "middle")
+                  .text((d) => d[1]);
+
+                // Bar Graph - Top Searches
+                const statsContainerTopSearches = document.createElement("div");
+                statsContainerTopSearches.id = "statsContainerTopSearches";
+                popupContainer.appendChild(statsContainerTopSearches);
+
+                statsContainerTopSearches.innerHTML += "<h2>Top Searches</h2>";
+
+                const keywordCounts = d3.rollups(
+                  parsedData
+                    .filter((d) =>
+                      d["specific action taken"].includes(
+                        "Incremented click count for:"
+                      )
+                    )
+                    .map((d) => {
+                      const match = d["specific action taken"].match(
+                        /Incremented click count for: (.*?) on platform:/
+                      );
+                      return match ? match[1] : null;
+                    })
+                    .filter(Boolean),
+                  (v) => v.length,
+                  (d) => d
+                );
+
+                keywordCounts.sort((a, b) => b[1] - a[1]);
+                const topKeywords = keywordCounts.slice(0, 23);
+
+                const chartWidth = 600;
+                const chartHeight = 400;
+                const marginTopSearches = {
+                  top: 20,
+                  right: 30,
+                  bottom: 100,
+                  left: 50,
+                };
+
+                const xScaleTopSearches = d3
+                  .scaleBand()
+                  .domain(topKeywords.map((d) => d[0]))
+                  .range([
+                    marginTopSearches.left,
+                    chartWidth - marginTopSearches.right,
+                  ])
+                  .padding(0.1);
+
+                const yScaleTopSearches = d3
+                  .scaleLinear()
+                  .domain([0, d3.max(topKeywords, (d) => d[1])])
+                  .nice()
+                  .range([
+                    chartHeight - marginTopSearches.bottom,
+                    marginTopSearches.top,
+                  ]);
+
+                const svgTopSearches = d3
+                  .select("#statsContainerTopSearches")
+                  .append("svg")
+                  .attr("width", chartWidth)
+                  .attr("height", chartHeight);
+
+                svgTopSearches
+                  .append("g")
+                  .attr(
+                    "transform",
+                    `translate(0,${chartHeight - marginTopSearches.bottom})`
+                  )
+                  .call(d3.axisBottom(xScaleTopSearches).tickSizeOuter(0))
+                  .selectAll("text")
+                  .attr("transform", "rotate(-45)")
+                  .style("text-anchor", "end");
+
+                svgTopSearches
+                  .append("g")
+                  .attr("transform", `translate(${marginTopSearches.left},0)`)
+                  .call(d3.axisLeft(yScaleTopSearches).ticks(null, "s"));
+
+                svgTopSearches
+                  .selectAll(".bar")
+                  .data(topKeywords)
+                  .enter()
+                  .append("rect")
+                  .attr("class", "bar")
+                  .attr("x", (d) => xScaleTopSearches(d[0]))
+                  .attr("y", (d) => yScaleTopSearches(d[1]))
+                  .attr("width", xScaleTopSearches.bandwidth())
+                  .attr(
+                    "height",
+                    (d) =>
+                      chartHeight -
+                      marginTopSearches.bottom -
+                      yScaleTopSearches(d[1])
+                  )
+                  .attr("fill", "steelblue");
+
+                svgTopSearches
+                  .selectAll(".label")
+                  .data(topKeywords)
+                  .enter()
+                  .append("text")
+                  .attr(
+                    "x",
+                    (d) =>
+                      xScaleTopSearches(d[0]) +
+                      xScaleTopSearches.bandwidth() / 2
+                  )
+                  .attr("y", (d) => yScaleTopSearches(d[1]) - 5)
                   .attr("text-anchor", "middle")
                   .text((d) => d[1]);
               })
