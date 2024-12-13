@@ -752,23 +752,54 @@
               .then((data) => {
                 const parsedData = d3.csvParse(data.log_data);
 
-                // Line Graph - Actions by Date
-                const statsContainer = document.createElement("div");
-                statsContainer.id = "statsContainer";
-                popupContainer.appendChild(statsContainer);
+                function generateDateRange(startDate, endDate) {
+                  const dateRange = [];
+                  let currentDate = new Date(startDate);
+                  while (currentDate <= endDate) {
+                    dateRange.push(new Date(currentDate));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                  }
+                  return dateRange;
+                }
 
-                statsContainer.innerHTML += "<h2>Number Of Actions Daily</h2>";
+                const [minDate, maxDate] = d3.extent(
+                  parsedData,
+                  (d) => new Date(d["date and time"].split(" ")[0])
+                );
 
+                const fullDateRange = generateDateRange(minDate, maxDate);
+
+                // Line Graph - Activities By Date
                 const actionsByDate = d3.rollups(
                   parsedData,
                   (v) => v.length,
                   (d) => d["date and time"].split(" ")[0]
                 );
 
-                actionsByDate.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+                const normalizedActionsByDate = fullDateRange.map((date) => {
+                  const dateString = date.toISOString().split("T")[0];
+                  const existingEntry = actionsByDate.find(
+                    (d) => d[0] === dateString
+                  );
+                  return existingEntry ? existingEntry : [dateString, 0];
+                });
 
-                const dates = actionsByDate.map((d) => new Date(d[0]));
-                const counts = actionsByDate.map((d) => d[1]);
+                normalizedActionsByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
+                const dates = normalizedActionsByDate.map(
+                  (d) => new Date(d[0])
+                );
+                const counts = normalizedActionsByDate.map((d) => d[1]);
+
+                const statsContainer = document.createElement("div");
+                statsContainer.id = "statsContainer";
+                popupContainer.appendChild(statsContainer);
+
+                statsContainer.innerHTML += "<h2>Number Of Actions Daily</h2>";
+
+                actionsByDate.sort((a, b) => new Date(a[0]) - new Date(b[0]));
 
                 const width = 600;
                 const height = 300;
@@ -816,7 +847,7 @@
 
                 svg
                   .append("path")
-                  .datum(actionsByDate)
+                  .datum(normalizedActionsByDate)
                   .attr("fill", "none")
                   .attr("stroke", "steelblue")
                   .attr("stroke-width", 2)
@@ -824,7 +855,7 @@
 
                 svg
                   .selectAll(".dot")
-                  .data(actionsByDate)
+                  .data(normalizedActionsByDate)
                   .enter()
                   .append("circle")
                   .attr("cx", (d) => xScale(new Date(d[0])))
