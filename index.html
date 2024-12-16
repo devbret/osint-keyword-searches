@@ -793,6 +793,90 @@
                 );
                 const counts = normalizedActionsByDate.map((d) => d[1]);
 
+                const logFileRetrievedData = parsedData.filter(
+                  (d) =>
+                    d["specific action taken"] ===
+                    "Log file retrieved successfully"
+                );
+
+                const logFileRetrievedByDate = d3.rollups(
+                  logFileRetrievedData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                const normalizedLogFileRetrievedByDate = fullDateRange.map(
+                  (date) => {
+                    const dateString = date.toISOString().split("T")[0];
+                    const existingEntry = logFileRetrievedByDate.find(
+                      (d) => d[0] === dateString
+                    );
+                    return existingEntry ? existingEntry : [dateString, 0];
+                  }
+                );
+
+                normalizedLogFileRetrievedByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
+                const logFileCounts = normalizedLogFileRetrievedByDate.map(
+                  (d) => d[1]
+                );
+
+                const retrievedQueriesData = parsedData.filter(
+                  (d) => d["specific action taken"] === "Retrieved queries"
+                );
+
+                const retrievedQueriesByDate = d3.rollups(
+                  retrievedQueriesData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                const normalizedRetrievedQueriesByDate = fullDateRange.map(
+                  (date) => {
+                    const dateString = date.toISOString().split("T")[0];
+                    const existingEntry = retrievedQueriesByDate.find(
+                      (d) => d[0] === dateString
+                    );
+                    return existingEntry ? existingEntry : [dateString, 0];
+                  }
+                );
+
+                normalizedRetrievedQueriesByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
+                const retrievedCounts = normalizedRetrievedQueriesByDate.map(
+                  (d) => d[1]
+                );
+
+                const incrementedClickData = parsedData.filter((d) =>
+                  d["specific action taken"].startsWith(
+                    "Incremented click count for"
+                  )
+                );
+
+                const incrementedClickByDate = d3.rollups(
+                  incrementedClickData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                const normalizedIncrementedClickByDate = fullDateRange.map(
+                  (date) => {
+                    const dateString = date.toISOString().split("T")[0];
+                    const existingEntry = incrementedClickByDate.find(
+                      (d) => d[0] === dateString
+                    );
+                    return existingEntry ? existingEntry : [dateString, 0];
+                  }
+                );
+
+                normalizedIncrementedClickByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
                 const statsContainer = document.createElement("div");
                 statsContainer.id = "statsContainer";
                 popupContainer.appendChild(statsContainer);
@@ -862,6 +946,149 @@
                   .attr("cy", (d) => yScale(d[1]))
                   .attr("r", 4)
                   .attr("fill", "steelblue");
+
+                yScale
+                  .domain([
+                    0,
+                    Math.max(d3.max(counts), d3.max(retrievedCounts)),
+                  ])
+                  .nice();
+
+                const retrievedLine = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(normalizedRetrievedQueriesByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "green")
+                  .attr("stroke-width", 2)
+                  .attr("d", retrievedLine);
+
+                svg
+                  .selectAll(".retrieved-dot")
+                  .data(normalizedRetrievedQueriesByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("class", "retrieved-dot")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "green");
+
+                const incrementedCounts = normalizedIncrementedClickByDate.map(
+                  (d) => d[1]
+                );
+
+                yScale
+                  .domain([
+                    0,
+                    Math.max(
+                      d3.max(counts),
+                      d3.max(retrievedCounts),
+                      d3.max(incrementedCounts)
+                    ),
+                  ])
+                  .nice();
+
+                const incrementedLine = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(normalizedIncrementedClickByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "red")
+                  .attr("stroke-width", 2)
+                  .attr("d", incrementedLine);
+
+                svg
+                  .selectAll(".incremented-dot")
+                  .data(normalizedIncrementedClickByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("class", "incremented-dot")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "red");
+
+                yScale
+                  .domain([
+                    0,
+                    Math.max(
+                      d3.max(counts),
+                      d3.max(retrievedCounts),
+                      d3.max(incrementedCounts),
+                      d3.max(logFileCounts)
+                    ),
+                  ])
+                  .nice();
+
+                const logFileLine = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(normalizedLogFileRetrievedByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "orange")
+                  .attr("stroke-width", 2)
+                  .attr("d", logFileLine);
+
+                svg
+                  .selectAll(".logfile-dot")
+                  .data(normalizedLogFileRetrievedByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("class", "logfile-dot")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "orange");
+
+                const legendContainer = document.createElement("div");
+                legendContainer.id = "legendContainer";
+                legendContainer.style.display = "flex";
+                legendContainer.style.justifyContent = "space-around";
+                legendContainer.style.alignItems = "center";
+                legendContainer.style.margin = "10px 0px";
+                statsContainer.appendChild(legendContainer);
+
+                const legendItems = [
+                  { color: "steelblue", label: "Total" },
+                  { color: "green", label: "Loads" },
+                  { color: "red", label: "Queries" },
+                  { color: "orange", label: "Stats" },
+                ];
+
+                legendContainer.innerHTML = "";
+                legendItems.forEach((item) => {
+                  const legendItem = document.createElement("div");
+                  legendItem.style.display = "flex";
+                  legendItem.style.alignItems = "center";
+                  legendItem.style.marginRight = "10px";
+
+                  const colorBox = document.createElement("div");
+                  colorBox.style.width = "20px";
+                  colorBox.style.height = "20px";
+                  colorBox.style.backgroundColor = item.color;
+                  colorBox.style.marginRight = "8px";
+                  legendItem.appendChild(colorBox);
+
+                  const label = document.createElement("span");
+                  label.textContent = item.label;
+                  label.style.fontSize = "12px";
+                  legendItem.appendChild(label);
+
+                  legendContainer.appendChild(legendItem);
+                });
 
                 // Bar Graph - Platform Activity
                 const statsContainerPlatformActivity =
