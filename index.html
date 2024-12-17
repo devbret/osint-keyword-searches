@@ -1186,114 +1186,175 @@
                   .text((d) => d[1]);
 
                 // Bar Graph - Top Searches
-                const statsContainerTopSearches = document.createElement("div");
-                statsContainerTopSearches.id = "statsContainerTopSearches";
-                popupContainer.appendChild(statsContainerTopSearches);
+                const topSearchesContainer = document.createElement("div");
+                topSearchesContainer.id = "topSearchesContainer";
+                popupContainer.appendChild(topSearchesContainer);
 
-                statsContainerTopSearches.innerHTML += "<h2>Top Searches</h2>";
+                topSearchesContainer.innerHTML += "<h2>Top Searches</h2>";
 
-                const keywordCounts = d3.rollups(
+                const topSearchesPlatformCounts = d3.rollups(
                   parsedData
-                    .filter((d) =>
-                      d["specific action taken"].includes(
+                    .filter((dataRow) =>
+                      dataRow["specific action taken"].includes(
                         "Incremented click count for:"
                       )
                     )
-                    .map((d) => {
-                      const match = d["specific action taken"].match(
-                        /Incremented click count for: (.*?) on platform:/
+                    .map((dataRow) => {
+                      const match = dataRow["specific action taken"].match(
+                        /Incremented click count for: (.*?) on platform: (.*?)$/
                       );
-                      return match ? match[1] : null;
+                      return match
+                        ? { keyword: match[1], platform: match[2] }
+                        : null;
                     })
                     .filter(Boolean),
-                  (v) => v.length,
-                  (d) => d
+                  (group) => group.length,
+                  (data) => data.keyword,
+                  (data) => data.platform
                 );
 
-                keywordCounts.sort((a, b) => b[1] - a[1]);
-                const topKeywords = keywordCounts.slice(0, 23);
+                let topSearchesStackableData = topSearchesPlatformCounts.map(
+                  ([keyword, platformData]) => {
+                    const row = { keyword };
+                    platformData.forEach(([platform, count]) => {
+                      row[platform] = count;
+                    });
+                    return row;
+                  }
+                );
 
-                const chartWidth = 600;
-                const chartHeight = 400;
-                const marginTopSearches = {
+                topSearchesStackableData = topSearchesStackableData
+                  .sort((a, b) => {
+                    const sumA = Object.keys(a)
+                      .filter((key) => key !== "keyword")
+                      .reduce((sum, platform) => sum + a[platform], 0);
+                    const sumB = Object.keys(b)
+                      .filter((key) => key !== "keyword")
+                      .reduce((sum, platform) => sum + b[platform], 0);
+                    return sumB - sumA;
+                  })
+                  .slice(0, 33);
+
+                const topSearchesPlatforms = Array.from(
+                  new Set(
+                    topSearchesStackableData.flatMap((row) =>
+                      Object.keys(row).filter((key) => key !== "keyword")
+                    )
+                  )
+                );
+
+                const topSearchesChartWidth = 600;
+                const topSearchesChartHeight = 400;
+                const topSearchesMargin = {
                   top: 20,
                   right: 30,
                   bottom: 100,
                   left: 50,
                 };
 
-                const xScaleTopSearches = d3
+                const topSearchesXScale = d3
                   .scaleBand()
-                  .domain(topKeywords.map((d) => d[0]))
+                  .domain(topSearchesStackableData.map((d) => d.keyword))
                   .range([
-                    marginTopSearches.left,
-                    chartWidth - marginTopSearches.right,
+                    topSearchesMargin.left,
+                    topSearchesChartWidth - topSearchesMargin.right,
                   ])
                   .padding(0.1);
 
-                const yScaleTopSearches = d3
+                const topSearchesYScale = d3
                   .scaleLinear()
-                  .domain([0, d3.max(topKeywords, (d) => d[1])])
+                  .domain([
+                    0,
+                    d3.max(topSearchesStackableData, (d) =>
+                      topSearchesPlatforms.reduce(
+                        (sum, platform) => sum + (d[platform] || 0),
+                        0
+                      )
+                    ),
+                  ])
                   .nice()
                   .range([
-                    chartHeight - marginTopSearches.bottom,
-                    marginTopSearches.top,
+                    topSearchesChartHeight - topSearchesMargin.bottom,
+                    topSearchesMargin.top,
                   ]);
 
-                const svgTopSearches = d3
-                  .select("#statsContainerTopSearches")
-                  .append("svg")
-                  .attr("width", chartWidth)
-                  .attr("height", chartHeight);
+                const topSearchesColorScale = d3
+                  .scaleOrdinal()
+                  .domain(topSearchesPlatforms)
+                  .range(d3.schemeTableau10);
 
-                svgTopSearches
+                const topSearchesSvg = d3
+                  .select("#topSearchesContainer")
+                  .append("svg")
+                  .attr("width", topSearchesChartWidth)
+                  .attr("height", topSearchesChartHeight);
+
+                const topSearchesStack = d3.stack().keys(topSearchesPlatforms);
+                const topSearchesStackedData = topSearchesStack(
+                  topSearchesStackableData
+                );
+
+                topSearchesSvg
                   .append("g")
                   .attr(
                     "transform",
-                    `translate(0,${chartHeight - marginTopSearches.bottom})`
+                    `translate(0,${
+                      topSearchesChartHeight - topSearchesMargin.bottom
+                    })`
                   )
-                  .call(d3.axisBottom(xScaleTopSearches).tickSizeOuter(0))
+                  .call(d3.axisBottom(topSearchesXScale).tickSizeOuter(0))
                   .selectAll("text")
                   .attr("transform", "rotate(-45)")
                   .style("text-anchor", "end");
 
-                svgTopSearches
+                topSearchesSvg
                   .append("g")
-                  .attr("transform", `translate(${marginTopSearches.left},0)`)
-                  .call(d3.axisLeft(yScaleTopSearches).ticks(null, "s"));
+                  .attr("transform", `translate(${topSearchesMargin.left},0)`)
+                  .call(d3.axisLeft(topSearchesYScale).ticks(null, "s"));
 
-                svgTopSearches
-                  .selectAll(".bar")
-                  .data(topKeywords)
+                topSearchesSvg
+                  .selectAll(".layer")
+                  .data(topSearchesStackedData)
+                  .enter()
+                  .append("g")
+                  .attr("fill", (d) => topSearchesColorScale(d.key))
+                  .selectAll("rect")
+                  .data((d) => d)
                   .enter()
                   .append("rect")
-                  .attr("class", "bar")
-                  .attr("x", (d) => xScaleTopSearches(d[0]))
-                  .attr("y", (d) => yScaleTopSearches(d[1]))
-                  .attr("width", xScaleTopSearches.bandwidth())
+                  .attr("x", (d) => topSearchesXScale(d.data.keyword))
+                  .attr("y", (d) => topSearchesYScale(d[1]))
                   .attr(
                     "height",
-                    (d) =>
-                      chartHeight -
-                      marginTopSearches.bottom -
-                      yScaleTopSearches(d[1])
+                    (d) => topSearchesYScale(d[0]) - topSearchesYScale(d[1])
                   )
-                  .attr("fill", "steelblue");
+                  .attr("width", topSearchesXScale.bandwidth());
 
-                svgTopSearches
-                  .selectAll(".label")
-                  .data(topKeywords)
+                const topSearchesLegend = topSearchesSvg
+                  .selectAll(".legend")
+                  .data(topSearchesPlatforms)
                   .enter()
-                  .append("text")
+                  .append("g")
                   .attr(
-                    "x",
-                    (d) =>
-                      xScaleTopSearches(d[0]) +
-                      xScaleTopSearches.bandwidth() / 2
-                  )
-                  .attr("y", (d) => yScaleTopSearches(d[1]) - 5)
-                  .attr("text-anchor", "middle")
-                  .text((d) => d[1]);
+                    "transform",
+                    (d, i) =>
+                      `translate(${
+                        topSearchesChartWidth - topSearchesMargin.right - 100
+                      }, ${topSearchesMargin.top + i * 20})`
+                  );
+
+                topSearchesLegend
+                  .append("rect")
+                  .attr("width", 15)
+                  .attr("height", 15)
+                  .attr("fill", (d) => topSearchesColorScale(d));
+
+                topSearchesLegend
+                  .append("text")
+                  .attr("x", 20)
+                  .attr("y", 12)
+                  .style("text-anchor", "start")
+                  .text((d) => d);
               })
               .catch((error) => {
                 console.error("Error fetching log data:", error);
