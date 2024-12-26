@@ -1057,6 +1057,138 @@
                   .attr("r", 4)
                   .attr("fill", "orange");
 
+                const keywordAddedData = parsedData.filter(
+                  (d) =>
+                    d["type of action"] === "update_queries" &&
+                    d["specific action taken"] !== "[]"
+                );
+
+                const keywordAddedByDate = d3.rollups(
+                  keywordAddedData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                const normalizedKeywordAddedByDate = fullDateRange.map(
+                  (date) => {
+                    const dateString = date.toISOString().split("T")[0];
+                    const existingEntry = keywordAddedByDate.find(
+                      (d) => d[0] === dateString
+                    );
+                    return existingEntry ? existingEntry : [dateString, 0];
+                  }
+                );
+
+                normalizedKeywordAddedByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
+                const keywordCounts = normalizedKeywordAddedByDate.map(
+                  (d) => d[1]
+                );
+
+                yScale
+                  .domain([
+                    0,
+                    Math.max(
+                      d3.max(counts),
+                      d3.max(retrievedCounts),
+                      d3.max(incrementedCounts),
+                      d3.max(logFileCounts),
+                      d3.max(keywordCounts)
+                    ),
+                  ])
+                  .nice();
+
+                const keywordLine = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(normalizedKeywordAddedByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "purple")
+                  .attr("stroke-width", 2)
+                  .attr("d", keywordLine);
+
+                svg
+                  .selectAll(".keyword-dot")
+                  .data(normalizedKeywordAddedByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("class", "keyword-dot")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "purple");
+
+                const keywordDeletedData = parsedData.filter(
+                  (d) => d["type of action"] === "delete_query"
+                );
+
+                const keywordsDeletedByDate = d3.rollups(
+                  keywordDeletedData,
+                  (v) => v.length,
+                  (d) => d["date and time"].split(" ")[0]
+                );
+
+                const normalizedKeywordsDeletedByDate = fullDateRange.map(
+                  (date) => {
+                    const dateString = date.toISOString().split("T")[0];
+                    const existingEntry = keywordsDeletedByDate.find(
+                      (d) => d[0] === dateString
+                    );
+                    return existingEntry ? existingEntry : [dateString, 0];
+                  }
+                );
+
+                normalizedKeywordsDeletedByDate.sort(
+                  (a, b) => new Date(a[0]) - new Date(b[0])
+                );
+
+                const keywordDeletionCounts =
+                  normalizedKeywordsDeletedByDate.map((d) => d[1]);
+
+                yScale
+                  .domain([
+                    0,
+                    Math.max(
+                      d3.max(counts),
+                      d3.max(retrievedCounts),
+                      d3.max(incrementedCounts),
+                      d3.max(logFileCounts),
+                      d3.max(keywordCounts),
+                      d3.max(keywordDeletionCounts)
+                    ),
+                  ])
+                  .nice();
+
+                const keywordDeletionLine = d3
+                  .line()
+                  .x((d) => xScale(new Date(d[0])))
+                  .y((d) => yScale(d[1]));
+
+                svg
+                  .append("path")
+                  .datum(normalizedKeywordsDeletedByDate)
+                  .attr("fill", "none")
+                  .attr("stroke", "pink")
+                  .attr("stroke-width", 2)
+                  .attr("d", keywordDeletionLine);
+
+                svg
+                  .selectAll(".keyword-deletion-dot")
+                  .data(normalizedKeywordsDeletedByDate)
+                  .enter()
+                  .append("circle")
+                  .attr("class", "keyword-deletion-dot")
+                  .attr("cx", (d) => xScale(new Date(d[0])))
+                  .attr("cy", (d) => yScale(d[1]))
+                  .attr("r", 4)
+                  .attr("fill", "pink");
+
                 const legendContainer = document.createElement("div");
                 legendContainer.id = "legendContainer";
                 legendContainer.style.display = "flex";
@@ -1070,6 +1202,8 @@
                   { color: "green", label: "Loads" },
                   { color: "red", label: "Queries" },
                   { color: "orange", label: "Stats" },
+                  { color: "purple", label: "Added" },
+                  { color: "pink", label: "Deleted" },
                 ];
 
                 legendContainer.innerHTML = "";
