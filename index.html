@@ -239,6 +239,12 @@
       .select2-results__options {
         width: 300px;
       }
+      #statsContainerPlatformActivity {
+        margin-top: 35px;
+      }
+      #statsContainerHourlyActivity h2 {
+        margin-top: 0px;
+      }
     </style>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -1493,6 +1499,106 @@
                   .attr("y", 12)
                   .style("text-anchor", "start")
                   .text((d) => d);
+
+                // Heatmap Graph - Hourly Activity
+                const hourlyActivity = d3.rollups(
+                  parsedData,
+                  (v) => v.length,
+                  (d) => {
+                    const dateTime = new Date(d["date and time"]);
+                    return `${dateTime.getDay()}-${dateTime.getHours()}`;
+                  }
+                );
+
+                const heatmapData = Array.from({ length: 7 }, () =>
+                  Array(24).fill(0)
+                );
+
+                hourlyActivity.forEach(([key, count]) => {
+                  const [day, hour] = key.split("-").map(Number);
+                  heatmapData[day][hour] = count;
+                });
+
+                const statsContainerHourlyActivity =
+                  document.createElement("div");
+                statsContainerHourlyActivity.id =
+                  "statsContainerHourlyActivity";
+                popupContainer.appendChild(statsContainerHourlyActivity);
+
+                statsContainerHourlyActivity.innerHTML +=
+                  "<h2>Hourly Activity</h2>";
+
+                const heatmapWidth = 600;
+                const heatmapHeight = 300;
+                const heatmapMargin = {
+                  top: 10,
+                  right: 30,
+                  bottom: 30,
+                  left: 40,
+                };
+
+                const heatmapX = d3
+                  .scaleBand()
+                  .domain(d3.range(24))
+                  .range([
+                    heatmapMargin.left,
+                    heatmapWidth - heatmapMargin.right,
+                  ])
+                  .padding(0.05);
+
+                const heatmapY = d3
+                  .scaleBand()
+                  .domain(d3.range(7))
+                  .range([
+                    heatmapMargin.top,
+                    heatmapHeight - heatmapMargin.bottom,
+                  ])
+                  .padding(0.05);
+
+                const heatmapColor = d3
+                  .scaleSequential(d3.interpolateOranges)
+                  .domain([0, d3.max(heatmapData.flat())]);
+
+                const heatmapSvg = d3
+                  .select("#statsContainerHourlyActivity")
+                  .append("svg")
+                  .attr("width", heatmapWidth)
+                  .attr("height", heatmapHeight);
+
+                heatmapSvg
+                  .selectAll("rect")
+                  .data(
+                    heatmapData.flatMap((row, day) =>
+                      row.map((count, hour) => ({ day, hour, count }))
+                    )
+                  )
+                  .enter()
+                  .append("rect")
+                  .attr("x", (d) => heatmapX(d.hour))
+                  .attr("y", (d) => heatmapY(d.day))
+                  .attr("width", heatmapX.bandwidth())
+                  .attr("height", heatmapY.bandwidth())
+                  .attr("fill", (d) => heatmapColor(d.count));
+
+                heatmapSvg
+                  .append("g")
+                  .attr(
+                    "transform",
+                    `translate(0,${heatmapHeight - heatmapMargin.bottom})`
+                  )
+                  .call(d3.axisBottom(heatmapX).tickFormat((d) => `${d}:00`));
+
+                heatmapSvg
+                  .append("g")
+                  .attr("transform", `translate(${heatmapMargin.left},0)`)
+                  .call(
+                    d3
+                      .axisLeft(heatmapY)
+                      .tickFormat(
+                        (d) =>
+                          ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]
+                      )
+                  );
               })
               .catch((error) => {
                 console.error("Error fetching log data:", error);
