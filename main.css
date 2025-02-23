@@ -1,0 +1,230 @@
+* {
+  padding: 0px;
+  border: none;
+  margin: 0px;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+main {
+  padding: 0px 10px 10px 0px;
+}
+ul {
+  list-style-type: none;
+  display: inline-flex;
+  flex-direction: column;
+}
+li {
+  padding: 6px 5px 6px 19px;
+  position: relative;
+}
+li:hover {
+  background: lightgray;
+  border-right: 2px solid darkgray;
+}
+h2 {
+  margin: 15px 0px;
+}
+a {
+  text-decoration: none;
+  color: magenta;
+  text-shadow: 1px 1px darkgray;
+}
+a:visited {
+  color: purple;
+}
+a:hover {
+  color: black;
+}
+input[type="checkbox"] {
+  margin: 0px 3px 0px 10px;
+}
+.keyword {
+  font-size: 23px;
+  font-weight: bolder;
+  text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+}
+.click-count {
+  font-size: 8px;
+  color: darkgray;
+  position: relative;
+  left: -2px;
+  top: -15px;
+}
+.bucket {
+  padding: 8px 1px 2px 6px;
+  position: relative;
+  margin-right: 5px;
+}
+.bucket:hover {
+  background-color: white;
+  box-shadow: inset 0px 0px 2px 1px lightgray;
+}
+.platform {
+  font-size: 9px;
+  position: absolute;
+  left: 1px;
+  bottom: -6px;
+  color: rgba(0, 0, 0, 0.66);
+}
+.search {
+  font-size: 23px;
+  margin-right: 4px;
+}
+.close-keyword {
+  color: white;
+  font-size: 8px;
+  position: absolute;
+  top: 17px;
+  left: 4px;
+  font-weight: bolder;
+  background-color: rgba(169, 169, 169, 0.43);
+  border-radius: 7px;
+  padding: 0px 3px;
+}
+.close-keyword:hover {
+  color: red;
+  cursor: pointer;
+}
+.search-bar {
+  position: fixed;
+  top: 0px;
+  right: 165px;
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+}
+.stats-panel {
+  position: fixed;
+  top: 37px;
+  right: 205px;
+}
+.stats-panel p {
+  color: lightgray;
+  font-size: 13px;
+}
+.stats-panel p:hover {
+  color: black;
+  cursor: pointer;
+}
+.stats-panel-header {
+  color: lightgray;
+  font-size: 17px;
+  margin: 5px 0px 2px 0px;
+}
+.keyword-select {
+  width: 300px;
+  height: 250px;
+  border: 1px solid darkgray;
+}
+.keyword-select option {
+  padding: 3px;
+}
+.keyword-select option:hover {
+  background-color: lightgray;
+  cursor: pointer;
+}
+.parameter-DIV {
+  display: flex;
+}
+.timeframe-select,
+.platform-select {
+  display: block;
+  margin: auto;
+  margin-top: 30px;
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+}
+.timeframe-select:hover,
+.platform-select:hover {
+  cursor: pointer;
+}
+.search-button {
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+  margin: auto;
+  display: block;
+  margin-top: 30px;
+}
+.search-button:hover {
+  background-color: gold;
+  cursor: pointer;
+}
+.custom-search-button {
+  position: fixed;
+  top: 0px;
+  right: 49px;
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+}
+.custom-search-button:hover {
+  background-color: gold;
+  cursor: pointer;
+}
+.add-button,
+.stats-button {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+}
+.add-button:hover,
+.stats-button:hover {
+  cursor: pointer;
+  background: gold;
+}
+.bg {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.stats-button {
+  right: 362px;
+}
+.popup {
+  width: auto;
+  max-width: 646px;
+  max-height: 800px;
+  overflow-y: auto;
+  padding: 18px 23px 33px 23px;
+  background: white;
+  border: 1px solid darkgray;
+  position: fixed;
+  top: 43px;
+  box-shadow: 0px 0px 2px 1px darkgray;
+}
+.close-popup {
+  position: absolute;
+  top: 2px;
+  right: 13px;
+}
+.close-popup:hover {
+  color: red;
+  cursor: pointer;
+}
+.new-keyword-input {
+  width: 100%;
+  border: 1px solid lightgray;
+  padding: 8px 12px;
+}
+.submit-button {
+  margin: 23px auto 0px auto;
+  display: block;
+  padding: 8px 12px;
+  border: 1px solid darkgray;
+}
+.submit-button:hover {
+  cursor: pointer;
+  background: gold;
+}
+.select2-results__options {
+  width: 300px;
+}
+#statsContainerPlatformActivity {
+  margin-top: 35px;
+}
+#statsContainerHourlyActivity h2 {
+  margin-top: 0px;
+}
